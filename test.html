@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>테스트</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<h2 id="status">로딩 중...</h2>
+<div id="result"></div>
+<script>
+fetch('./rules.xlsx')
+  .then(r => {
+    document.getElementById('status').innerText = 'fetch 성공! status=' + r.status;
+    return r.arrayBuffer();
+  })
+  .then(buf => {
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws);
+    document.getElementById('status').innerText = '✅ 성공! ' + data.length + '개 로드됨';
+    document.getElementById('result').innerText = 
+      '첫번째: ' + JSON.stringify(data[0]);
+  })
+  .catch(err => {
+    document.getElementById('status').innerText = '❌ 실패: ' + err.message;
+  });
+</script>
+</body>
+</html>
