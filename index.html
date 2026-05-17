@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인사업무봇</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #2563eb;              /* 생기있는 청색 */
+            --primary-dark: #1e3a8a;         /* 신뢰감의 깊은 남색 */
+            --primary-soft: #eff6ff;         /* 소프트 배경 */
+            --bg: #f8fafc;                   /* 따뜻한 흰색 */
+            --surface: #ffffff;              /* 순수 흰색 */
+            --text: #0f172a;                 /* 깊은 검은색 */
+            --muted: #64748b;                /* 부드러운 회색 */
+            --border: #e2e8f0;               /* 미세한 경계선 */
+            --radius: 12px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            --shadow-lg: 0 12px 32px rgba(37, 99, 235, 0.12);
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0e27;                   /* 깊은 검은색 */
+            --surface: #151d3b;              /* 어두운 남색 */
+            --text: #f1f5f9;                 /* 밝은 흰색 */
+            --muted: #cbd5e1;                /* 밝은 회색 */
+            --border: #2d3748;               /* 어두운 경계선 */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @keyframes wb-spin { to { transform: rotate(360deg); } }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            transition: background 0.3s;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== 헤더 ===== */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .bot-info h1 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        /* ===== 메인 콘텐츠 ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg);
+        }
+
+        /* ===== 타이틀 섹션 ===== */
+        .title-section {
+            text-align: center;
+            padding: 20px 0 10px;
+        }
+
+        .title-main {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .title-sub {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* ===== 카드 버튼 ===== */
+        .card-btn {
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .card-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .card-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ===== 네비게이션 버튼 ===== */
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        /* ===== 답변 카드 ===== */
+        .answer-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+
+        .answer-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .answer-text {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: keep-all;
+        }
+
+        .tag-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .tag {
+            padding: 4px 10px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .action-btn.saved {
+            border-color: #f59e0b;
+            color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .action-btn.copied {
+            border-color: #10b981;
+            color: #10b981;
+            background: #f0fdf4;
+        }
+
+        /* ===== 백업 버튼 ===== */
+        .backup-menu {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 150;
+            overflow: hidden;
+            display: none;
+        }
+
+        .backup-menu.show {
+            display: block;
+        }
+
+        .backup-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .backup-item:last-child {
+            border-bottom: none;
+        }
+
+        .backup-item:hover {
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .backup-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            z-index: 140;
+            font-size: 20px;
+        }
+
+        .backup-btn:hover {
+            transform: scale(1.1);
+            background: #1d4ed8;
+        }
+
+        /* ===== 입력창 ===== */
+        .input-area {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 12px 16px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 140;
+            width: 100%;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 24px;
+            padding: 6px 6px 6px 16px;
+            transition: all 0.2s;
+        }
+
+        .input-row:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .input-row input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 14px;
+            color: var(--text);
+            font-family: inherit;
+            min-width: 0;
+        }
+
+        .input-row input::placeholder {
+            color: var(--muted);
+        }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            background: #1d4ed8;
+            transform: scale(1.05);
+        }
+
+        /* ===== 토스트 ===== */
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* ===== 숨김 ===== */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="toast" id="toast"></div>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="avatar"><i data-lucide="shield-check" style="width:18px;height:18px;"></i></div>
+            <div class="bot-info"><h1>인사업무봇</h1></div>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" onclick="toggleTheme()" title="다크모드"><i data-lucide="moon" id="theme-icon" style="width:16px;height:16px;"></i></button>
+            <button class="icon-btn" onclick="toggleBookmark()" title="즐겨찾기"><i data-lucide="star" style="width:16px;height:16px;"></i></button>
+            <button class="icon-btn" onclick="toggleBackupMenu()" title="백업"><i data-lucide="download" style="width:16px;height:16px;"></i></button>
+        </div>
+    </div>
+
+    <div class="backup-menu" id="backup-menu">
+        <div class="backup-item" onclick="downloadBookmarksExcel()">
+            <i data-lucide="file" style="width:16px;height:16px;"></i>
+            다운로드 (Excel)
+        </div>
+        <div class="backup-item" onclick="copyToClipboard()">
+            <i data-lucide="copy" style="width:16px;height:16px;"></i>
+            클립보드 복사
+        </div>
+    </div>
+    </div>
+
+    <div class="main">
+        <div class="content" id="content">
+            <!-- 동적 콘텐츠 영역 -->
+        </div>
+
+        <div class="input-area" id="input-area">
+            <div class="input-row">
+                <input type="text" id="user-input" placeholder="직접 검색..." onkeypress="if(event.keyCode===13) search()">
+                <button class="send-btn" onclick="search()"><i data-lucide="search" style="width:16px;height:16px;"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content hidden" id="bookmark-panel">
+        <!-- 즐겨찾기 패널 -->
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    // ===== 전역 변수 =====
+    let kb = [];
+    let bookmarks = [];
+    let currentView = 'home';
+    let selectedMajor = null;
+    let selectedMinor = null;
+    let searchMode = false;
+
+    // ===== 초기화 =====
+    window.onload = () => {
+        const theme = localStorage.getItem('wb_theme') || 'light';
+        if (theme === 'dark') setTheme('dark');
+
+        const savedBm = localStorage.getItem('wb_bm');
+        if (savedBm) bookmarks = JSON.parse(savedBm);
+
+        loadDataFromGithub();
+    };
+
+    function loadDataFromGithub() {
+        document.getElementById('content').innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;">
+                <div style="width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:wb-spin 0.8s linear infinite;"></div>
+                <p style="font-size:14px;color:#64748b;">규정 데이터 불러오는 중...</p>
+            </div>
+        `;
+
+        fetch('./rules.xlsx?t=' + Date.now())
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.arrayBuffer();
+            })
+            .then(buf => {
+                parseExcel(buf);
+                if (kb.length === 0) throw new Error('데이터 비어있음');
+                showHome();
+            })
+            .catch(err => {
+                console.error('데이터 로드 실패:', err);
+                document.getElementById('content').innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;text-align:center;padding:20px;">
+                        <div style="font-size:48px;">⚠️</div>
+                        <p style="font-size:16px;font-weight:700;color:#0f172a;">데이터를 불러올 수 없습니다</p>
+                        <p style="font-size:13px;color:#64748b;line-height:1.8;">
+                            저장소에 <b>rules.xlsx</b> 파일이 있는지 확인해주세요.<br>
+                            에러: <b>${err.message}</b>
+                        </p>
+                        <button onclick="loadDataFromGithub()" style="margin-top:8px;padding:12px 24px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+                            🔄 다시 시도
+                        </button>
+                    </div>
+                `;
+            });
+    }
+
+    function parseExcel(data) {
+        try {
+            const wb = XLSX.read(data, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            
+            kb = json.map(row => ({
+                majorTopic: (row['대주제'] || '').trim(),
+                minorTopic: (row['소주제'] || '').trim(),
+                q: (row['질문(Question)'] || '').trim(),
+                a: (row['답변(Answer)'] || '').trim(),
+                tags: (row['관련 태그'] || '').split(',').map(t => t.trim()).filter(Boolean)
+            })).filter(i => i.q && i.a);
+
+            localStorage.setItem('wb_kb', JSON.stringify(kb));
+        } catch(e) {
+            console.error("엑셀 파일 파싱 실패:", e);
+        }
+    }
+
+    // ===== 뷰 함수 =====
+    function showHome() {
+        currentView = 'home';
+        selectedMajor = null;
+        selectedMinor = null;
+        searchMode = false;
+
+        const majors = [...new Set(kb.map(i => i.majorTopic))].filter(Boolean).sort();
+        
+        let html = `
+            <div class="title-section">
+                <div class="title-main">반갑습니다! 인사업무봇입니다 🤖</div>
+                <div class="title-sub">궁금한 주제를 선택하세요</div>
+            </div>
+        `;
+
+        majors.forEach(major => {
+            const items = kb.filter(i => i.majorTopic === major);
+            const summary = items.map(i => i.minorTopic).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(', ');
+            const icon = getIconForTopic(major);
+
+            html += `
+                <button class="card-btn" onclick="showMajorTopics('${major.replace(/'/g, "\\'")}')">
+                    <div class="card-icon">${icon}</div>
+                    <div class="card-content">
+                        <div class="card-title">${major}</div>
+                        <div class="card-desc">${summary}...</div>
+                    </div>
+                </button>
+            `;
+        });
+
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('input-area').style.display = 'block';
+    }
+
+    function showMajorTopics(major) {
+        currentView = 'major';
+        selectedMajor = major;
+        selectedMinor = null;
+
+        const minors = [...new Set(kb.filter(i => i.majorTopic === major).map(i => i.minorTopic))].filter(Boolean).sort();
+        
+        let html = `
+            <div class="title-section">
+                <div class="title-main">${major}</div>
+                <div class="title-sub">세부 주제를 선택하세요</div>
+            </div>
+        `;
+
+        minors.forEach(minor => {
+            const count = kb.filter(i => i.majorTopic === major && i.minorTopic === minor).length;
+            const icon = getIconForMinor(minor);
+
+            html += `
+                <button class="card-btn" onclick="showQuestions('${major.replace(/'/g, "\\'")}', '${minor.replace(/'/g, "\\'")}')">
+                    <div class="card-icon">${icon}</div>
+                    <div class="card-content">
+                        <div class="card-title">${minor}</div>
+                        <div class="card-desc">${count}개의 규정</div>
+                    </div>
+                </button>
+            `;
+        });
+
+        html += `<div class="nav-buttons">
+            <button class="nav-btn" onclick="showHome()">🏠 처음으로</button>
+        </div>`;
+
+        document.getElementById('content').innerHTML = html;
+    }
+
+    function showQuestions(major, minor) {
+        currentView = 'questions';
+        selectedMajor = major;
+        selectedMinor = minor;
+
+        const questions = kb.filter(i => i.majorTopic === major && i.minorTopic === minor);
+        
+        let html = `
+            <div class="title-section">
+                <div class="title-main">${minor}</div>
+                <div class="title-sub">${major}</div>
+            </div>
+        `;
+
+        questions.forEach((q, idx) => {
+            html += `
+                <button class="card-btn" onclick="showAnswer(${kb.indexOf(q)})">
+                    <div class="card-icon">${idx + 1}️⃣</div>
+                    <div class="card-content">
+                        <div class="card-title">${q.q}</div>
+                    </div>
+                </button>
+            `;
+        });
+
+        html += `<div class="nav-buttons">
+            <button class="nav-btn" onclick="showMajorTopics('${major.replace(/'/g, "\\'")}')">← 뒤로</button>
+            <button class="nav-btn" onclick="showHome()">🏠 처음으로</button>
+        </div>`;
+
+        document.getElementById('content').innerHTML = html;
+    }
+
+    function showAnswer(idx) {
+        const item = kb[idx];
+        const isBm = bookmarks.some(b => b.q === item.q);
+
+        let html = `
+            <div class="title-section">
+                <div class="title-main">${item.minorTopic}</div>
+                <div class="title-sub">${item.majorTopic}</div>
+            </div>
+
+            <div class="answer-card">
+                <div class="answer-title">❓ ${item.q}</div>
+                <div class="answer-text">${item.a}</div>
+                
+                <div class="tag-list">
+                    ${item.tags.map(t => `<span class="tag">#${t}</span>`).join('')}
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="copyAnswer('${item.q.replace(/`/g, '\\`')}', '${item.a.replace(/`/g, '\\`')}')">📋 복사</button>
+                    <button class="action-btn ${isBm ? 'saved' : ''}" id="bm-btn-${idx}" onclick="toggleBm(${idx}, '${item.q.replace(/`/g, '\\`')}', '${item.a.replace(/`/g, '\\`')}', '${item.majorTopic.replace(/`/g, '\\`')}')">
+                        ${isBm ? '⭐ 저장됨' : '⭐ 저장'}
+                    </button>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="nav-btn" onclick="showQuestions('${item.majorTopic.replace(/'/g, "\\'")}', '${item.minorTopic.replace(/'/g, "\\'")}')">← 뒤로</button>
+                <button class="nav-btn" onclick="showHome()">🏠 처음으로</button>
+            </div>
+        `;
+
+        document.getElementById('content').innerHTML = html;
+    }
+
+    // ===== 액션 함수 =====
+    function search() {
+        const query = document.getElementById('user-input').value.trim().toLowerCase();
+        if (!query) return;
+
+        searchMode = true;
+        const results = kb.filter(item => 
+            item.q.toLowerCase().includes(query) || 
+            item.a.toLowerCase().includes(query) ||
+            item.tags.some(t => t.toLowerCase().includes(query))
+        ).slice(0, 10);
+
+        let html = `
+            <div class="title-section">
+                <div class="title-main">검색 결과</div>
+                <div class="title-sub">'${query}' (${results.length}건)</div>
+            </div>
+        `;
+
+        if (results.length === 0) {
+            html += `<div style="text-align:center; padding:40px 20px; color:var(--muted);">검색 결과가 없습니다.</div>`;
+        } else {
+            results.forEach((item, idx) => {
+                html += `
+                    <button class="card-btn" onclick="showAnswer(${kb.indexOf(item)})">
+                        <div class="card-icon">🔍</div>
+                        <div class="card-content">
+                            <div class="card-title">${item.q}</div>
+                            <div class="card-desc">#${item.majorTopic}</div>
+                        </div>
+                    </button>
+                `;
+            });
+        }
+
+        html += `<div class="nav-buttons">
+            <button class="nav-btn" onclick="showHome()">🏠 처음으로</button>
+        </div>`;
+
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('user-input').value = '';
+    }
+
+    function copyAnswer(q, a) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(`❓ ${q}\n\n${a}`).then(() => {
+                toast('📋 복사되었습니다!');
+            }).catch(() => {
+                toast('⚠️ 복사에 실패했습니다.');
+            });
+        }
+    }
+
+    function toggleBm(idx, q, a, major) {
+        const bmIdx = bookmarks.findIndex(b => b.q === q);
+        const btn = document.getElementById(`bm-btn-${idx}`);
+        
+        if (bmIdx > -1) {
+            bookmarks.splice(bmIdx, 1);
+            if (btn) { btn.innerHTML = '⭐ 저장'; btn.classList.remove('saved'); }
+            toast('제거되었습니다.');
+        } else {
+            bookmarks.push({ q, a, major, date: new Date().toLocaleDateString() });
+            if (btn) { btn.innerHTML = '⭐ 저장됨'; btn.classList.add('saved'); }
+            toast('⭐ 즐겨찾기에 추가되었습니다!');
+        }
+        
+        localStorage.setItem('wb_bm', JSON.stringify(bookmarks));
+    }
+
+    function toggleBookmark() {
+        const panel = document.getElementById('bookmark-panel');
+        const content = document.getElementById('content');
+        
+        if (panel.classList.contains('hidden')) {
+            if (!bookmarks.length) {
+                toast('저장된 규정이 없습니다.');
+                return;
+            }
+
+            let html = `
+                <div class="title-section">
+                    <div class="title-main">즐겨찾기</div>
+                    <div class="title-sub">${bookmarks.length}개 저장됨</div>
+                </div>
+            `;
+
+            bookmarks.forEach((b, i) => {
+                html += `
+                    <div class="answer-card">
+                        <div class="answer-title">❓ ${b.q}</div>
+                        <div class="answer-text">${b.a}</div>
+                        <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); font-size:10px; color:var(--muted);">
+                            #${b.major} | ${b.date}
+                            <button style="float:right; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onclick="removeBm(${i})">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `<div class="nav-buttons">
+                <button class="nav-btn" onclick="toggleBookmark()">← 돌아가기</button>
+            </div>`;
+
+            panel.innerHTML = html;
+            panel.classList.remove('hidden');
+            content.classList.add('hidden');
+        } else {
+            panel.classList.add('hidden');
+            content.classList.remove('hidden');
+        }
+    }
+
+    function removeBm(idx) {
+        bookmarks.splice(idx, 1);
+        localStorage.setItem('wb_bm', JSON.stringify(bookmarks));
+        toggleBookmark();
+        toggleBookmark();
+    }
+
+    // ===== 백업/복원 함수 =====
+    function toggleBackupMenu() {
+        const menu = document.getElementById('backup-menu');
+        menu.classList.toggle('show');
+    }
+
+    function downloadBookmarksExcel() {
+        if (bookmarks.length === 0) {
+            toast('저장된 즐겨찾기가 없습니다.');
+            return;
+        }
+
+        // 데이터 준비
+        const data = bookmarks.map((bm, idx) => ({
+            '번호': idx + 1,
+            '질문': bm.q,
+            '답변': bm.a,
+            '카테고리': bm.major,
+            '저장날짜': bm.date
+        }));
+
+        // Excel 파일 생성
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '즐겨찾기');
+        
+        // 열 너비 자동 조정
+        const colWidths = [
+            { wch: 6 },
+            { wch: 40 },
+            { wch: 50 },
+            { wch: 15 },
+            { wch: 12 }
+        ];
+        ws['!cols'] = colWidths;
+
+        XLSX.writeFile(wb, `인사봇_즐겨찾기_${new Date().toISOString().split('T')[0]}.xlsx`);
+        toast('📊 Excel 파일 다운로드 완료!');
+        document.getElementById('backup-menu').classList.remove('show');
+    }
+
+    function copyToClipboard() {
+        const text = bookmarks.map((bm, idx) => 
+            `${idx + 1}. ${bm.q}\n${bm.a}\n---`
+        ).join('\n\n');
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                toast('📋 클립보드에 복사됨!');
+                document.getElementById('backup-menu').classList.remove('show');
+            });
+        }
+    }
+
+    // ===== 테마 =====
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('wb_theme', theme);
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+        lucide.createIcons();
+    }
+
+    // ===== 유틸리티 =====
+    function getIconForTopic(major) {
+        const iconMap = {
+            '위촉': '📋',
+            '심사': '⚠️',
+            '계약': '💼',
+            '보수': '📊',
+            '교육': '📚',
+            '등록': '📝',
+            '활동': '🎯',
+            '인센티브': '🎁'
+        };
+        
+        for (let key in iconMap) {
+            if (major.includes(key)) return iconMap[key];
+        }
+        return '📄';
+    }
+
+    function getIconForMinor(minor) {
+        const iconMap = {
+            '결격': '🚫',
+            '심사': '⚠️',
+            '재입사': '🔄',
+            '규정': '📋',
+            '자격': '✅',
+            '기준': '📏',
+            '요건': '☑️',
+            '절차': '⚙️'
+        };
+        
+        for (let key in iconMap) {
+            if (minor.includes(key)) return iconMap[key];
+        }
+        return '📌';
+    }
+
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        if (el) {
+            el.innerText = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2000);
+        }
+    }
+</script>
+</body>
+</html>
